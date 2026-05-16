@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Railway Network Topology</title>
+    <style>
+        body { background-color: #0d1117; color: #c9d1d9; font-family: 'Courier New', Courier, monospace; margin: 0; overflow: hidden; display: flex; }
+        .sidebar { width: 380px; background-color: #161b22; border-right: 1px solid #30363d; padding: 20px; height: 100vh; box-sizing: border-box; display: flex; flex-direction: column; z-index: 1000; }
+        .sidebar h2 { color: #58a6ff; font-size: 20px; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 2px;}
+        .subtitle { font-size: 11px; color: #8b949e; margin-bottom: 20px; letter-spacing: 1px; }
+        
+        #clock { font-size: 28px; color: #3fb950; margin-bottom: 15px; font-weight: bold; padding: 10px; border: 1px solid #30363d; background: #010409; text-align: center; }
+        
+        .restart-btn { background: #238636; color: white; border: none; padding: 12px; font-family: monospace; font-weight: bold; cursor: pointer; margin-bottom: 20px; transition: 0.2s; border-radius: 4px; }
+        .restart-btn:hover { background: #2ea043; box-shadow: 0 0 15px rgba(46, 160, 67, 0.4); }
+
+        .log-panel { background: #010409; border: 1px solid #30363d; padding: 15px; flex-grow: 1; overflow-y: auto; font-size: 12px; line-height: 1.6; }
+    </style>
+</head>
+<body>
+    <div id="map" style="height: 100vh; width: 100%;"></div>
+    
+    <div class="sidebar">
+        <h2>SYS_OPT.CORE //</h2>
+        <div class="subtitle">SECTOR 7: MULTI-AGENT ROUTING</div>
+        
+        <div id="clock">SYSTEM CLOCK: T=0</div>
+
+        <button class="restart-btn" onclick="location.reload()">[ RESTART SYSTEM UI ]</button>
+
+        <div class="log-panel" id="logs">Waiting for C++ Engine...</div>
+    </div>
+
+    <script>
+        // 1️⃣ MAP INIT
+        const map = L.map('map').setView([19.0760, 72.8777], 6);
+
+        // OPTIONAL: SMOOTHER ZOOM EXPERIENCE
+        map.options.zoomAnimation = true;
+        map.options.fadeAnimation = true;
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+
+        // 2️⃣ STATION COORDS
+        const coords = {
+            "Mumbai": [19.0760, 72.8777],
+            "Lonavala": [18.7546, 73.4062],
+            "Pune": [18.5204, 73.8567],
+            "Nashik": [19.9975, 73.7898],
+            "Kalyan": [19.2437, 73.1355],
+            "Surat": [21.1702, 72.8311],
+            "Nagpur": [21.1458, 79.0882],
+            "Solapur": [17.6599, 75.9064],
+            "Bhusawal": [21.0418, 75.7876]
+        };
+
+        // 3️⃣ DRAW STATIONS
+        for (let station in coords) {
+            L.marker(coords[station]).addTo(map).bindPopup(station);
+        }
+
+        // 4️⃣ TRAIN MARKERS & ANIMATIONS OBJECTS
+        let trainMarkers = {};
+        let trainAnimations = {};
+
+        // 5️⃣ FETCH FUNCTION
+        async function fetchSystemState() {
+    try {
+        const response = await fetch('train_state.json?t=' + new Date().getTime());
+        const data = await response.json();
+
+        // ✅ CLOCK UPDATE
+        document.getElementById("clock").innerText =
+            "SYSTEM CLOCK: T=" + data.system_time;
+
+        data.active_trains.forEach(train => {
+
+            // ✅ SAFETY
+            if (!coords[train.current_location]) return;
+
+            let position;
+
+            // ✅ FIXED LOGIC
+            if (train.status === 'IN_TRANSIT') {
+                position = coords[train.heading_to];
+            } else {
+                position = coords[train.current_location];
+            }
+
+            // ✅ CREATE / MOVE MARKER
+            if (!trainMarkers[train.id]) {
+                trainMarkers[train.id] = L.circleMarker(position, {
+                    radius: 8,
+                    color: 'red'
+                }).addTo(map);
+            } else {
+                smoothMove(train.id, trainMarkers[train.id], position);
+            }
+
+        });
+
+    } catch (error) {
+        console.log(error);
+    }
+}
+
+        // ✅ 6️⃣ HARDWARE-ACCELERATED SMOOTH MOVE FUNCTION (60FPS)
+        function smoothMove(trainId, marker, newPos) {
+            // 🛑 STOP previous animation to prevent tug-of-war
+            if (trainAnimations[trainId]) {
+                cancelAnimationFrame(trainAnimations[trainId]);
+            }
+
+            const start = marker.getLatLng();
+            const end = L.latLng(newPos);
+            
+            // ⚡ Set to 950ms so the animation finishes *just* before the next 1000ms fetch
+            const duration = 950; 
+            let startTime = null;
+
+            function animate(currentTime) {
+                if (!startTime) startTime = currentTime;
+                const timeElapsed = currentTime - startTime;
+                
+                // Calculate progress from 0.0 to 1.0
+                const progress = Math.min(timeElapsed / duration, 1);
+
+                let lat = start.lat + (end.lat - start.lat) * progress;
+                let lng = start.lng + (end.lng - start.lng) * progress;
+
+                marker.setLatLng([lat, lng]);
+
+                // Keep animating until we hit 100% (progress == 1)
+                if (progress < 1) {
+                    trainAnimations[trainId] = requestAnimationFrame(animate);
+                }
+            }
+
+            // Start the animation loop
+            trainAnimations[trainId] = requestAnimationFrame(animate);
+        }
+
+        // ✅ 7️⃣ AUTO REFRESH (1000ms TO MATCH C++ ENGINE)
+        setInterval(fetchSystemState, 1000);
+        fetchSystemState();
+
+    </script>
+</body>
+</html>

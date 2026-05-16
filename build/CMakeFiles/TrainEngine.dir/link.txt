@@ -1,0 +1,3 @@
+D:\cmake\bin\cmake.exe -E rm -f CMakeFiles\TrainEngine.dir/objects.a
+C:\MinGW\bin\ar.exe qc CMakeFiles\TrainEngine.dir/objects.a @CMakeFiles\TrainEngine.dir\objects1.rsp
+C:\MinGW\bin\g++.exe -g -Wl,--whole-archive CMakeFiles\TrainEngine.dir/objects.a -Wl,--no-whole-archive -o TrainEngine.exe -Wl,--out-implib,libTrainEngine.dll.a -Wl,--major-image-version,0,--minor-image-version,0 @CMakeFiles\TrainEngine.dir\linkLibs.rsp

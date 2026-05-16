@@ -1,0 +1,14 @@
+[
+{
+  "directory": "D:/TrainRouteEngine/build",
+  "command": "C:\\MinGW\\bin\\g++.exe  @CMakeFiles/TrainEngine.dir/includes_CXX.rsp -g -std=gnu++1z -o CMakeFiles\\TrainEngine.dir\\src\\main.cpp.obj -c D:\\TrainRouteEngine\\src\\main.cpp",
+  "file": "D:/TrainRouteEngine/src/main.cpp",
+  "output": "CMakeFiles/TrainEngine.dir/src/main.cpp.obj"
+},
+{
+  "directory": "D:/TrainRouteEngine/build",
+  "command": "C:\\MinGW\\bin\\g++.exe  @CMakeFiles/TrainEngine.dir/includes_CXX.rsp -g -std=gnu++1z -o CMakeFiles\\TrainEngine.dir\\src\\Graph.cpp.obj -c D:\\TrainRouteEngine\\src\\Graph.cpp",
+  "file": "D:/TrainRouteEngine/src/Graph.cpp",
+  "output": "CMakeFiles/TrainEngine.dir/src/Graph.cpp.obj"
+}
+]

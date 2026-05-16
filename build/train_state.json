@@ -1,0 +1,53 @@
+{
+  "system_time": 49,
+  "active_trains": [
+    {
+      "id": 101,
+      "name": "Rajdhani Exp",
+      "current_location": "Surat",
+      "status": "IN_TRANSIT",
+      "heading_to": "Nashik",
+      "minutes_remaining": 71
+    },
+    {
+      "id": 102,
+      "name": "Vande Bharat",
+      "current_location": "Pune",
+      "status": "IN_TRANSIT",
+      "heading_to": "Nagpur",
+      "minutes_remaining": 251
+    },
+    {
+      "id": 103,
+      "name": "Panchavati Exp",
+      "current_location": "Nashik",
+      "status": "IN_TRANSIT",
+      "heading_to": "Kalyan",
+      "minutes_remaining": 31
+    },
+    {
+      "id": 104,
+      "name": "Deccan Queen",
+      "current_location": "Lonavala",
+      "status": "IN_TRANSIT",
+      "heading_to": "Mumbai",
+      "minutes_remaining": 87
+    },
+    {
+      "id": 105,
+      "name": "Vidarbha Exp",
+      "current_location": "Nagpur",
+      "status": "IN_TRANSIT",
+      "heading_to": "Bhusawal",
+      "minutes_remaining": 151
+    },
+    {
+      "id": 106,
+      "name": "Godavari Exp",
+      "current_location": "Bhusawal",
+      "status": "IN_TRANSIT",
+      "heading_to": "Nashik",
+      "minutes_remaining": 81
+    }
+  ]
+}
