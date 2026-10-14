@@ -1,0 +1,25 @@
+# Git and IDE configuration
+.git
+.gitignore
+.vscode
+
+# Local build artifacts (ignore build folder except dashboard.html)
+build/*
+!build/dashboard.html
+bin/
+obj/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# Compiled binaries and debug files (including nested ones like include/Graph.exe)
+**/*.exe
+*.exe
+*.o
+*.obj
+*.pdb
+*.ilk
+
+# Runtime generated telemetry
+train_state.json

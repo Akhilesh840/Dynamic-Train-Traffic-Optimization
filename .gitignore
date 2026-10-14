@@ -1,0 +1,13 @@
+# Build directories and temporary build artifacts
+build/.cmake/
+build/CMakeFiles/
+build/CMakeCache.txt
+build/cmake_install.cmake
+build/Makefile
+build/TrainEngine.exe
+build/compile_commands.json
+build/train_state.json
+train_state.json
+
+# IDE configuration
+.vscode/

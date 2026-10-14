@@ -2,10 +2,18 @@
 #include <iostream>
 #include <fstream>
 #include <string>
-#include <windows.h> 
+#include <chrono>
+#include <thread>
+
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 int main() {
+#ifdef _WIN32
     SetConsoleOutputCP(CP_UTF8);
+#endif
+
     Graph railway;
 
     // 1. REGISTER STATIONS
@@ -54,7 +62,7 @@ int main() {
             std::cout << "System Clock: T=" << (int)global_clock << std::endl;
         }
 
-        Sleep(1000); 
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         global_clock += 1.0;
     }
 

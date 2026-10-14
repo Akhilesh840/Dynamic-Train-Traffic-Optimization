@@ -70,44 +70,98 @@
 
         // 5️⃣ FETCH FUNCTION
         async function fetchSystemState() {
-    try {
-        const response = await fetch('train_state.json?t=' + new Date().getTime());
-        const data = await response.json();
+            try {
+                const response = await fetch('train_state.json?t=' + new Date().getTime());
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                const data = await response.json();
 
-        // ✅ CLOCK UPDATE
-        document.getElementById("clock").innerText =
-            "SYSTEM CLOCK: T=" + data.system_time;
+                // ✅ CLOCK UPDATE
+                document.getElementById("clock").innerText =
+                    "SYSTEM CLOCK: T=" + data.system_time;
 
-        data.active_trains.forEach(train => {
+                // ✅ UPDATE LOGS PANEL WITH ACTIVE TRAIN TELEMETRY
+                const logsEl = document.getElementById("logs");
+                if (logsEl) {
+                    let html = `<div style="font-size:11px; color:#58a6ff; font-weight:bold; margin-bottom:10px; border-bottom:1px solid #30363d; padding-bottom:5px;">ACTIVE TRAIN FLEET (${data.active_trains.length})</div>`;
+                    data.active_trains.forEach(train => {
+                        let statusColor = '#3fb950'; // Resting / normal
+                        if (train.status === 'IN_TRANSIT') statusColor = '#58a6ff';
+                        else if (train.status === 'DELAYED_WAITING_FOR_TRACK') statusColor = '#f0883e';
 
-            // ✅ SAFETY
-            if (!coords[train.current_location]) return;
+                        html += `
+                            <div style="background:#0d1117; border:1px solid #30363d; border-radius:4px; padding:8px; margin-bottom:8px;">
+                                <div style="display:flex; justify-content:space-between; font-weight:bold; color:#f0f6fc;">
+                                    <span>#${train.id} ${train.name}</span>
+                                    <span style="color:${statusColor}; font-size:10px;">${train.status}</span>
+                                </div>
+                                <div style="color:#8b949e; font-size:11px; margin-top:3px;">
+                                    📍 <b>${train.current_location}</b> ${train.heading_to ? `➔ <b>${train.heading_to}</b>` : ''}
+                                </div>
+                                ${train.minutes_remaining !== undefined ? `<div style="color:#79c0ff; font-size:11px; margin-top:2px;">⏱ ETA: ${train.minutes_remaining} mins</div>` : ''}
+                            </div>
+                        `;
+                    });
+                    logsEl.innerHTML = html;
+                }
 
-            let position;
+                data.active_trains.forEach(train => {
+                    // ✅ SAFETY
+                    if (!coords[train.current_location]) return;
 
-            // ✅ FIXED LOGIC
-            if (train.status === 'IN_TRANSIT') {
-                position = coords[train.heading_to];
-            } else {
-                position = coords[train.current_location];
+                    let position;
+
+                    // ✅ FIXED LOGIC
+                    if (train.status === 'IN_TRANSIT' && coords[train.heading_to]) {
+                        position = coords[train.heading_to];
+                    } else {
+                        position = coords[train.current_location];
+                    }
+
+                    // ✅ CREATE / MOVE MARKER
+                    if (!trainMarkers[train.id]) {
+                        trainMarkers[train.id] = L.circleMarker(position, {
+                            radius: 8,
+                            color: '#f85149',
+                            fillColor: '#ff7b72',
+                            fillOpacity: 0.9,
+                            weight: 2
+                        }).addTo(map).bindPopup(`<b>#${train.id} ${train.name}</b><br>Status: ${train.status}`);
+                    } else {
+                        trainMarkers[train.id].setPopupContent(`<b>#${train.id} ${train.name}</b><br>Status: ${train.status}`);
+                        smoothMove(train.id, trainMarkers[train.id], position);
+                    }
+                });
+
+            } catch (error) {
+                console.error(error);
+                const logsEl = document.getElementById("logs");
+                if (logsEl) {
+                    if (window.location.protocol === 'file:') {
+                        logsEl.innerHTML = `
+                            <div style="color:#f85149; font-weight:bold; margin-bottom:6px;">⚠️ CORS Error (file:// URL)</div>
+                            <div style="color:#c9d1d9; font-size:11px; line-height:1.4; margin-bottom:10px;">
+                                Browsers block JavaScript from reading <code>train_state.json</code> over direct <code>file://</code> paths.
+                            </div>
+                            <div style="background:#161b22; border:1px solid #30363d; padding:8px; border-radius:4px; font-size:11px; color:#58a6ff;">
+                                <b>To fix:</b> Run in terminal:<br>
+                                <code style="color:#3fb950;">python -m http.server 8000</code><br><br>
+                                Then open:<br>
+                                <a href="http://localhost:8000/dashboard.html" target="_blank" style="color:#58a6ff; text-decoration:underline;">http://localhost:8000/dashboard.html</a>
+                            </div>
+                        `;
+                    } else {
+                        logsEl.innerHTML = `
+                            <div style="color:#f0883e; font-weight:bold;">Waiting for C++ Engine...</div>
+                            <div style="color:#8b949e; font-size:11px; margin-top:5px;">
+                                Make sure <code>TrainEngine.exe</code> is running inside the <code>build/</code> folder.
+                            </div>
+                        `;
+                    }
+                }
             }
-
-            // ✅ CREATE / MOVE MARKER
-            if (!trainMarkers[train.id]) {
-                trainMarkers[train.id] = L.circleMarker(position, {
-                    radius: 8,
-                    color: 'red'
-                }).addTo(map);
-            } else {
-                smoothMove(train.id, trainMarkers[train.id], position);
-            }
-
-        });
-
-    } catch (error) {
-        console.log(error);
-    }
-}
+        }
 
         // ✅ 6️⃣ HARDWARE-ACCELERATED SMOOTH MOVE FUNCTION (60FPS)
         function smoothMove(trainId, marker, newPos) {
