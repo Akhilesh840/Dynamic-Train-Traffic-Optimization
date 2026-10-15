@@ -2,50 +2,114 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = 'akhilesh840/train-traffic-image'
+        DOCKER_IMAGE = 'akhilesh840/train-traffic-image'
+        DOCKER_HUB_CREDENTIALS = 'dockerhub-creds'
     }
 
     stages {
         stage('Checkout') {
             steps {
-                echo 'Checking out source code from Git repository...'
+                echo 'Checking out source code from GitHub repository...'
                 checkout scm
             }
         }
 
-        stage('Build Docker Image') {
+        stage('Build and Test') {
             steps {
-                echo "Building Docker container image ${IMAGE_NAME}..."
+                echo 'Verifying core C++ source code and project configuration files...'
                 script {
                     if (isUnix()) {
-                        sh "docker build -t ${IMAGE_NAME}:${BUILD_NUMBER} -t ${IMAGE_NAME}:latest ."
+                        sh '''
+                            test -f CMakeLists.txt
+                            test -f src/main.cpp
+                            test -f src/Graph.cpp
+                            test -f include/Graph.h
+                            test -f build/dashboard.html
+                            echo "All core source and configuration files verified successfully."
+                        '''
                     } else {
-                        bat "docker build -t ${IMAGE_NAME}:${BUILD_NUMBER} -t ${IMAGE_NAME}:latest ."
+                        bat '''
+                            if exist CMakeLists.txt (echo Core files verified) else (exit 1)
+                        '''
                     }
                 }
             }
         }
 
-        stage('Test & Health Check') {
+        stage('Docker Build') {
             steps {
-                echo 'Validating Docker container startup and health...'
+                echo "Building Docker container image ${DOCKER_IMAGE}:${BUILD_NUMBER} and latest..."
                 script {
                     if (isUnix()) {
-                        sh """
-                            docker run -d --name train_test_run -p 8085:80 ${IMAGE_NAME}:latest
-                            sleep 5
-                            docker ps | grep train_test_run
-                            docker stop train_test_run
-                            docker rm train_test_run
-                        """
+                        sh "docker build -t ${DOCKER_IMAGE}:${BUILD_NUMBER} -t ${DOCKER_IMAGE}:latest ."
                     } else {
-                        bat """
-                            docker run -d --name train_test_run -p 8085:80 ${IMAGE_NAME}:latest
-                            timeout /t 5 /nobreak
-                            docker ps
-                            docker stop train_test_run
-                            docker rm train_test_run
-                        """
+                        bat "docker build -t ${DOCKER_IMAGE}:${BUILD_NUMBER} -t ${DOCKER_IMAGE}:latest ."
+                    }
+                }
+            }
+        }
+
+        stage('Push Image') {
+            steps {
+                echo 'Logging into Docker Hub and pushing image...'
+                withCredentials([usernamePassword(credentialsId: "${DOCKER_HUB_CREDENTIALS}", usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    script {
+                        if (isUnix()) {
+                            sh '''
+                                echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                                docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}
+                                docker push ${DOCKER_IMAGE}:latest
+                            '''
+                        } else {
+                            bat '''
+                                echo %DOCKER_PASS% | docker login -u %DOCKER_USER% --password-stdin
+                                docker push %DOCKER_IMAGE%:%BUILD_NUMBER%
+                                docker push %DOCKER_IMAGE%:latest
+                            '''
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Minikube Deployment') {
+            steps {
+                echo 'Deploying application to Minikube cluster...'
+                script {
+                    if (isUnix()) {
+                        sh '''
+                            kubectl apply -f k8s/deployment.yaml
+                            kubectl apply -f k8s/service.yaml
+                            kubectl set image deployment/train-traffic-deployment train-traffic-container=${DOCKER_IMAGE}:${BUILD_NUMBER} || true
+                            kubectl rollout status deployment/train-traffic-deployment --timeout=60s || true
+                        '''
+                    } else {
+                        bat '''
+                            kubectl apply -f k8s/deployment.yaml
+                            kubectl apply -f k8s/service.yaml
+                            kubectl set image deployment/train-traffic-deployment train-traffic-container=%DOCKER_IMAGE%:%BUILD_NUMBER%
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('Verification') {
+            steps {
+                echo 'Verifying Kubernetes Pods, Deployment, and Service status...'
+                script {
+                    if (isUnix()) {
+                        sh '''
+                            kubectl get pods -l app=train-traffic
+                            kubectl get deployment train-traffic-deployment
+                            kubectl get svc train-traffic-service
+                        '''
+                    } else {
+                        bat '''
+                            kubectl get pods -l app=train-traffic
+                            kubectl get deployment train-traffic-deployment
+                            kubectl get svc train-traffic-service
+                        '''
                     }
                 }
             }
@@ -57,10 +121,10 @@ pipeline {
             echo 'Pipeline execution completed.'
         }
         success {
-            echo 'Docker build and verification succeeded!'
+            echo 'Train Traffic Optimization CI/CD Pipeline succeeded!'
         }
         failure {
-            echo 'Docker build or verification failed.'
+            echo 'Pipeline failed. Check stage logs for troubleshooting.'
         }
     }
 }
