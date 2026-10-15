@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_IMAGE = 'akhilesh840/train-traffic-image'
+        DOCKER_IMAGE = 'akhileshmunishwar/train-traffic-image'
         DOCKER_HUB_CREDENTIALS = 'dockerhub-creds'
     }
 

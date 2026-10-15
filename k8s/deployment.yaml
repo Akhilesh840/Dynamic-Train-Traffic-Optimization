@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: train-traffic-deployment
 spec:
-  replicas: 2 # Runs two copies of your app for backup
+  replicas: 2 
   selector:
     matchLabels:
       app: train-traffic
@@ -14,6 +14,6 @@ spec:
     spec:
       containers:
       - name: train-traffic-container
-        image: akhilesh840/train-traffic-image:latest 
+        image: akhileshmunishwar/train-traffic-image:latest 
         ports:
-        - containerPort: 8080 # This matches the exposed port in Dockerfile
+        - containerPort: 8080 
