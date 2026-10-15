@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = 'train-route-engine'
+        IMAGE_NAME = 'akhilesh840/train-traffic-image'
     }
 
     stages {

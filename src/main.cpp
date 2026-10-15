@@ -9,6 +9,7 @@
 #include <windows.h>
 #endif
 
+
 int main() {
 #ifdef _WIN32
     SetConsoleOutputCP(CP_UTF8);
@@ -62,8 +63,9 @@ int main() {
             std::cout << "System Clock: T=" << (int)global_clock << std::endl;
         }
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-        global_clock += 1.0;
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    global_clock += 1.0;
+
     }
 
     std::cout << "\n--- ENGINE OFFLINE ---" << std::endl;

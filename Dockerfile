@@ -36,7 +36,8 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Install Nginx to serve the dashboard and JSON file
 RUN apt-get update && apt-get install -y --no-install-recommends \
     nginx \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && sed -i 's/listen 80 default_server;/listen 80 default_server;\n\tlisten 8080 default_server;/' /etc/nginx/sites-available/default
 
 WORKDIR /var/www/html
 
@@ -46,8 +47,8 @@ COPY --from=builder /app/build/TrainEngine /usr/local/bin/TrainEngine
 # Copy frontend dashboard
 COPY build/dashboard.html /var/www/html/dashboard.html
 
-# Expose HTTP port
-EXPOSE 80
+# Expose HTTP ports (80 and 8080)
+EXPOSE 80 8080
 
 # Launch Nginx web server and run the C++ TrainEngine with exec for clean signal handling
 CMD ["/bin/bash", "-c", "nginx && cd /var/www/html && exec TrainEngine"]
